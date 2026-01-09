@@ -118,6 +118,6 @@ if uploaded_file is not None:
         st.download_button(
             label="Download CSV",
             data=csv_data,
-            file_name=f"{uploaded_file.name}_sentiment.csv",
+            file_name=f"{uploaded_file.name.rsplit('.', 1)[0]}_sentiment.csv",
             mime="text/csv"
         )
