@@ -1,5 +1,9 @@
 accelerate
+python-dotenv
 pandas
+pytest
+ruff
 streamlit
 torch
 transformers
+ty
