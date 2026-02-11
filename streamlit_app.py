@@ -1,28 +1,21 @@
+import os
+import warnings
+
 import pandas as pd
 import streamlit as st
 import torch
+from dotenv import load_dotenv
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-def get_device():
-    """Automatically detect the best available device in order of priority: MPS, CUDA, CPU."""
-    if torch.backends.mps.is_available():
-        return "mps"
-    elif torch.cuda.is_available():
-        return "cuda"
-    else:
-        return "cpu"
+load_dotenv()
 
-@st.cache_resource
-def load_model(device):
-    """Load model and tokenizer at application startup."""
-    model_path = "ibm-granite/granite-4.0-h-tiny"
-    model = AutoModelForCausalLM.from_pretrained(model_path, device_map=device, dtype=torch.float16)
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    return model, tokenizer
+warnings.filterwarnings(
+    "ignore", message="MPS:.*constant padding.*not currently supported"
+)
 
-def create_prompt(review_text):
-    """Create the classification prompt for a review."""
-    prompt = f"""Classify the sentiment of the customer reviews as positive or negative.
+BATCH_SIZE = 8
+
+PROMPT_TEMPLATE = """Classify the sentiment of the customer reviews as positive or negative.
 Your response should only include the answer. Do not provide any further explanation.
 
 Here are some examples, complete the last one:
@@ -37,51 +30,88 @@ Sentiment:
 negative
 
 Review:
-{review_text}
+{}
 Sentiment:"""
-    return prompt
 
-def classify_review(review, model, tokenizer, device):
-    """Classify a single review and return the sentiment label."""
-    prompt = create_prompt(review)
-    chat = [{"role": "user", "content": prompt}]
-    chat_text = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
-    
-    input_tokens = tokenizer(chat_text, return_tensors="pt").to(device)
-    
-    with torch.no_grad():
-        output = model.generate(
-            **input_tokens,
-            max_new_tokens=10,
-            pad_token_id=tokenizer.eos_token_id
-        )
-    
-    decoded = tokenizer.decode(output[0], skip_special_tokens=True)
-    
-    response_lower = decoded.lower()
-    if "negative" in response_lower.split("sentiment:")[-1]:
-        return "negative"
-    return "positive"
+
+def get_device():
+    """Automatically detect the best available device in order of priority: MPS, CUDA, CPU."""
+    return (
+        "mps"
+        if torch.backends.mps.is_available()
+        else "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+
+@st.cache_resource
+def load_model(device):
+    """Load model and tokenizer at application startup."""
+    model_path = "ibm-granite/granite-4.0-h-tiny"
+    token = os.environ.get("HF_TOKEN")
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path, dtype=torch.float16, token=token, low_cpu_mem_usage=True
+    ).half().to(device)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, token=token)
+    tokenizer.padding_side = "left"
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    return model, tokenizer
 
 
 def process_dataframe(df, text_column, model, tokenizer, device):
-    """Process a dataframe with per review progress updates."""
+    """Process a dataframe in batches with progress updates."""
     reviews = df[text_column].tolist()
     all_sentiments = []
-    
-    total_reviews = len(reviews)
+    total = len(reviews)
     progress_bar = st.progress(0)
-    
-    for i, review in enumerate(reviews):
-        sentiment = classify_review(review, model, tokenizer, device)
-        all_sentiments.append(sentiment)
-        progress_bar.progress((i + 1) / total_reviews)
-    
-    df["Sentiment"] = all_sentiments
-    return df
+
+    if not reviews:
+        progress_bar.progress(1.0)
+        df = df.copy()
+        df["Sentiment"] = all_sentiments
+        return df
+
+    for start in range(0, total, BATCH_SIZE):
+        batch = reviews[start : start + BATCH_SIZE]
+        chats = [
+            [{"role": "user", "content": PROMPT_TEMPLATE.format(review)}]
+            for review in batch
+        ]
+        texts = [
+            tokenizer.apply_chat_template(
+                chat, tokenize=False, add_generation_prompt=True
+            )
+            for chat in chats
+        ]
+        inputs = tokenizer(texts, return_tensors="pt", padding=True).to(device)
+        input_length = inputs["input_ids"].shape[1]
+
+        with torch.inference_mode():
+            outputs = model.generate(
+                **inputs, max_new_tokens=10, pad_token_id=tokenizer.pad_token_id
+            )
+
+        for output in outputs:
+            new_tokens = tokenizer.decode(
+                output[input_length:], skip_special_tokens=True
+            )
+            all_sentiments.append(
+                "negative" if "negative" in new_tokens.lower() else "positive"
+            )
+
+        progress_bar.progress(min(start + len(batch), total) / total)
+
+    result = df.copy()
+    result["Sentiment"] = all_sentiments
+    return result
+
 
 st.title("Text Classification Pipeline")
-st.write("Classify sentiments in customer reviews with IBM Granite 4.0 language models.")
+st.write(
+    "Classify sentiments in customer reviews with IBM Granite 4.0 language models."
+)
 
 uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
@@ -92,32 +122,31 @@ with st.spinner(f"Loading model on {device.upper()}..."):
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
-    
+
     st.write("Preview")
     st.dataframe(df.head())
-    
+
     columns = df.columns.tolist()
     text_column = st.selectbox(
         "Select column for review text",
         options=columns,
-        index=columns.index("SUMMARY") if "SUMMARY" in columns else 0
+        index=columns.index("SUMMARY") if "SUMMARY" in columns else 0,
     )
-    
+
     if st.button("Classify", type="primary"):
         st.write("Classifying...")
         result_df = process_dataframe(df, text_column, model, tokenizer, device)
-        
+
         st.success("Done.")
-        
+
         st.write("Preview")
         st.dataframe(result_df.head())
-        
-        # Prepare CSV for download
+
         csv_data = result_df.to_csv(index=False)
-        
+
         st.download_button(
             label="Download CSV",
             data=csv_data,
             file_name=f"{uploaded_file.name.rsplit('.', 1)[0]}_sentiment.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
