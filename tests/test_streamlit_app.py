@@ -82,12 +82,27 @@ class TestLoadModel:
             "siebert/sentiment-roberta-large-english", token=None
         )
 
+    @patch("streamlit_app.hf_logging")
+    @patch("streamlit_app.AutoTokenizer")
+    @patch("streamlit_app.AutoModelForSequenceClassification")
+    def test_suppresses_hf_warnings(
+        self, mock_model_cls, mock_tok_cls, mock_hf_logging
+    ):
+        mock_tok_cls.from_pretrained.return_value = MagicMock()
+
+        from streamlit_app import load_model
+
+        load_model.clear()
+        load_model("cpu")
+
+        mock_hf_logging.set_verbosity_error.assert_called_once()
+
     @patch("streamlit_app.AutoTokenizer")
     @patch("streamlit_app.AutoModelForSequenceClassification")
     def test_returns_model_and_tokenizer(self, mock_model_cls, mock_tok_cls):
         mock_model = MagicMock()
         mock_tokenizer = MagicMock()
-        mock_model_cls.from_pretrained.return_value.half.return_value.to.return_value = mock_model
+        mock_model_cls.from_pretrained.return_value.to.return_value = mock_model
         mock_tok_cls.from_pretrained.return_value = mock_tokenizer
 
         from streamlit_app import load_model

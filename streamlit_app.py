@@ -4,7 +4,11 @@ import pandas as pd
 import streamlit as st
 import torch
 from dotenv import load_dotenv
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    logging as hf_logging,
+)
 
 load_dotenv()
 
@@ -27,13 +31,10 @@ def load_model(device):
     """Load model and tokenizer at application startup."""
     model_path = "siebert/sentiment-roberta-large-english"
     token = os.environ.get("HF_TOKEN")
-    model = (
-        AutoModelForSequenceClassification.from_pretrained(
-            model_path, dtype=torch.float16, token=token
-        )
-        .half()
-        .to(device)
-    )
+    hf_logging.set_verbosity_error()
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_path, dtype=torch.float16, token=token
+    ).to(device)
     tokenizer = AutoTokenizer.from_pretrained(model_path, token=token)
     return model, tokenizer
 
