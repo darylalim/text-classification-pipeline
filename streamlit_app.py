@@ -1,37 +1,14 @@
 import os
-import warnings
 
 import pandas as pd
 import streamlit as st
 import torch
 from dotenv import load_dotenv
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 load_dotenv()
 
-warnings.filterwarnings(
-    "ignore", message="MPS:.*constant padding.*not currently supported"
-)
-
 BATCH_SIZE = 8
-
-PROMPT_TEMPLATE = """Classify the sentiment of the customer reviews as positive or negative.
-Your response should only include the answer. Do not provide any further explanation.
-
-Here are some examples, complete the last one:
-Review:
-Oh, where do I even begin? This product is a tour de force that has left me utterly captivated, enchanted, and spellbound. Every aspect of this purchase was nothing short of pure excellence, deserving nothing less than a perfect 10 out of 10 rating!
-Sentiment:
-positive
-
-Review:
-It's a shame because I had high hopes. This product did not deliver. The quality is poor, the design is flawed, and customer service was unhelpful. There were so many issues that could have been avoided. So many promises were made, but none were kept.
-Sentiment:
-negative
-
-Review:
-{}
-Sentiment:"""
 
 
 def get_device():
@@ -48,70 +25,72 @@ def get_device():
 @st.cache_resource
 def load_model(device):
     """Load model and tokenizer at application startup."""
-    model_path = "ibm-granite/granite-4.0-h-tiny"
+    model_path = "siebert/sentiment-roberta-large-english"
     token = os.environ.get("HF_TOKEN")
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path, dtype=torch.float16, token=token, low_cpu_mem_usage=True
-    ).half().to(device)
+    model = (
+        AutoModelForSequenceClassification.from_pretrained(
+            model_path, dtype=torch.float16, token=token
+        )
+        .half()
+        .to(device)
+    )
     tokenizer = AutoTokenizer.from_pretrained(model_path, token=token)
-    tokenizer.padding_side = "left"
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
     return model, tokenizer
 
 
 def process_dataframe(df, text_column, model, tokenizer, device):
     """Process a dataframe in batches with progress updates."""
-    reviews = df[text_column].tolist()
+    texts = df[text_column].astype(str).tolist()
     all_sentiments = []
-    total = len(reviews)
+    all_confidences = []
+    total = len(texts)
     progress_bar = st.progress(0)
 
-    if not reviews:
+    if not texts:
         progress_bar.progress(1.0)
         df = df.copy()
         df["Sentiment"] = all_sentiments
+        df["Confidence"] = all_confidences
         return df
 
     for start in range(0, total, BATCH_SIZE):
-        batch = reviews[start : start + BATCH_SIZE]
-        chats = [
-            [{"role": "user", "content": PROMPT_TEMPLATE.format(review)}]
-            for review in batch
-        ]
-        texts = [
-            tokenizer.apply_chat_template(
-                chat, tokenize=False, add_generation_prompt=True
-            )
-            for chat in chats
-        ]
-        inputs = tokenizer(texts, return_tensors="pt", padding=True).to(device)
-        input_length = inputs["input_ids"].shape[1]
+        batch = texts[start : start + BATCH_SIZE]
 
-        with torch.inference_mode():
-            outputs = model.generate(
-                **inputs, max_new_tokens=10, pad_token_id=tokenizer.pad_token_id
-            )
+        valid_indices = [i for i, t in enumerate(batch) if t.strip()]
+        valid_texts = [batch[i] for i in valid_indices]
 
-        for output in outputs:
-            new_tokens = tokenizer.decode(
-                output[input_length:], skip_special_tokens=True
-            )
-            all_sentiments.append(
-                "negative" if "negative" in new_tokens.lower() else "positive"
-            )
+        batch_sentiments = [""] * len(batch)
+        batch_confidences = [0.0] * len(batch)
+
+        if valid_texts:
+            inputs = tokenizer(
+                valid_texts, return_tensors="pt", padding=True, truncation=True
+            ).to(device)
+
+            with torch.inference_mode():
+                outputs = model(**inputs)
+
+            probs = torch.softmax(outputs.logits, dim=-1)
+            max_probs, predictions = probs.max(dim=-1)
+
+            for j, idx in enumerate(valid_indices):
+                label = model.config.id2label[predictions[j].item()]
+                batch_sentiments[idx] = label.lower()
+                batch_confidences[idx] = round(max_probs[j].item(), 4)
+
+        all_sentiments.extend(batch_sentiments)
+        all_confidences.extend(batch_confidences)
 
         progress_bar.progress(min(start + len(batch), total) / total)
 
     result = df.copy()
     result["Sentiment"] = all_sentiments
+    result["Confidence"] = all_confidences
     return result
 
 
 st.title("Text Classification Pipeline")
-st.write(
-    "Classify sentiments in customer reviews with IBM Granite 4.0 language models."
-)
+st.write("Classify sentiment in text with SiEBERT.")
 
 uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
@@ -128,9 +107,9 @@ if uploaded_file is not None:
 
     columns = df.columns.tolist()
     text_column = st.selectbox(
-        "Select column for review text",
+        "Select text column",
         options=columns,
-        index=columns.index("SUMMARY") if "SUMMARY" in columns else 0,
+        index=0,
     )
 
     if st.button("Classify", type="primary"):
