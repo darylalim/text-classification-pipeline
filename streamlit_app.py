@@ -42,51 +42,37 @@ def load_model(device):
 def process_dataframe(df, text_column, model, tokenizer, device):
     """Process a dataframe in batches with progress updates."""
     texts = df[text_column].astype(str).tolist()
-    all_sentiments = []
-    all_confidences = []
-    total = len(texts)
+    sentiments = [""] * len(texts)
+    confidences = [0.0] * len(texts)
     progress_bar = st.progress(0)
 
-    if not texts:
-        progress_bar.progress(1.0)
-        df = df.copy()
-        df["Sentiment"] = all_sentiments
-        df["Confidence"] = all_confidences
-        return df
+    valid = [(i, t) for i, t in enumerate(texts) if t.strip()]
 
-    for start in range(0, total, BATCH_SIZE):
-        batch = texts[start : start + BATCH_SIZE]
+    if valid:
+        id2label = model.config.id2label
+        indices, valid_texts = zip(*valid)
 
-        valid_indices = [i for i, t in enumerate(batch) if t.strip()]
-        valid_texts = [batch[i] for i in valid_indices]
-
-        batch_sentiments = [""] * len(batch)
-        batch_confidences = [0.0] * len(batch)
-
-        if valid_texts:
+        for start in range(0, len(valid_texts), BATCH_SIZE):
+            batch = list(valid_texts[start : start + BATCH_SIZE])
             inputs = tokenizer(
-                valid_texts, return_tensors="pt", padding=True, truncation=True
+                batch, return_tensors="pt", padding=True, truncation=True
             ).to(device)
 
             with torch.inference_mode():
-                outputs = model(**inputs)
+                probs = torch.softmax(model(**inputs).logits, dim=-1)
+                max_probs, preds = probs.max(dim=-1)
 
-            probs = torch.softmax(outputs.logits, dim=-1)
-            max_probs, predictions = probs.max(dim=-1)
+            for j, idx in enumerate(indices[start : start + BATCH_SIZE]):
+                sentiments[idx] = id2label[preds[j].item()].lower()
+                confidences[idx] = round(max_probs[j].item(), 4)
 
-            for j, idx in enumerate(valid_indices):
-                label = model.config.id2label[predictions[j].item()]
-                batch_sentiments[idx] = label.lower()
-                batch_confidences[idx] = round(max_probs[j].item(), 4)
-
-        all_sentiments.extend(batch_sentiments)
-        all_confidences.extend(batch_confidences)
-
-        progress_bar.progress(min(start + len(batch), total) / total)
+            progress_bar.progress((start + len(batch)) / len(valid_texts))
+    else:
+        progress_bar.progress(1.0)
 
     result = df.copy()
-    result["Sentiment"] = all_sentiments
-    result["Confidence"] = all_confidences
+    result["Sentiment"] = sentiments
+    result["Confidence"] = confidences
     return result
 
 

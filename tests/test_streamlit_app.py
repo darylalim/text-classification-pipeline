@@ -351,7 +351,23 @@ class TestProcessDataframe:
             assert 0.0 <= val <= 1.0
 
     @patch("streamlit_app.st")
-    def test_handles_blank_text(self, mock_st):
+    def test_handles_all_blank_texts(self, mock_st):
+        mock_progress = MagicMock()
+        mock_st.progress.return_value = mock_progress
+        df = pd.DataFrame({"text": ["", "  ", "\t"]})
+        model = MagicMock()
+        tokenizer = MagicMock()
+
+        result = process_dataframe(df, "text", model, tokenizer, "cpu")
+
+        assert len(result) == 3
+        assert all(s == "" for s in result["Sentiment"])
+        assert all(c == 0.0 for c in result["Confidence"])
+        model.assert_not_called()
+        mock_progress.progress.assert_called_once_with(1.0)
+
+    @patch("streamlit_app.st")
+    def test_handles_mixed_blank_text(self, mock_st):
         mock_st.progress.return_value = MagicMock()
         df = pd.DataFrame({"text": ["good product", "", "  ", "bad product"]})
         tokenizer = _make_mock_tokenizer()
@@ -363,8 +379,8 @@ class TestProcessDataframe:
         assert result["Confidence"].iloc[1] == 0.0
         assert result["Sentiment"].iloc[2] == ""
         assert result["Confidence"].iloc[2] == 0.0
-        assert result["Sentiment"].iloc[0] != ""
-        assert result["Sentiment"].iloc[3] != ""
+        assert result["Sentiment"].iloc[0] == "positive"
+        assert result["Sentiment"].iloc[3] == "negative"
 
     @patch("streamlit_app.st")
     def test_confidence_values_in_valid_range(self, mock_st):
