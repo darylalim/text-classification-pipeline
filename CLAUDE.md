@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Streamlit web app that classifies text sentiment (reviews, tweets, social media posts, etc.) as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`), a RoBERTa-based sequence classification model. Users upload a CSV, select the text column, and download results with "Sentiment" and "Confidence" columns.
+Streamlit web app that classifies text sentiment as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`). Users upload a CSV, select the text column, and download results with "Sentiment" and "Confidence" columns.
 
 ## Commands
 
@@ -34,25 +34,29 @@ Use `ruff` for all linting and formatting. Run `uv run ruff check --fix .` to au
 
 ## Architecture
 
-Single-file application (`streamlit_app.py`, ~150 lines):
+Single-file application (`streamlit_app.py`, ~120 lines):
 
-1. **Device detection** (`get_device`) — selects MPS, CUDA, or CPU
-2. **Model loading** (`load_model`) — cached via `@st.cache_resource`, float16 precision, authenticates with `HF_TOKEN` env var
-3. **Batch processing** (`process_dataframe`) — chunks texts by `BATCH_SIZE` (default 8), tokenizes raw text, runs forward pass, extracts labels and confidence scores from logits via softmax, skips empty/whitespace-only texts
+1. **`get_device`** — selects MPS, CUDA, or CPU
+2. **`load_model`** — loads model/tokenizer once via `@st.cache_resource` in float16; authenticates with `HF_TOKEN`
+3. **`process_dataframe`** — pre-filters blanks, batches valid texts (`BATCH_SIZE=8`), classifies via softmax over logits
 4. **UI** — file upload → column selection → classify → preview → CSV download
 
 ## Key Patterns
 
-- Model and tokenizer loaded once per session via `@st.cache_resource`
-- `torch.inference_mode()` for inference
-- Confidence scores via `torch.softmax(logits, dim=-1).max(dim=-1)` — labels from `model.config.id2label`
-- Empty/whitespace-only texts get sentiment `""` and confidence `0.0`
-- Tokenizer called with `truncation=True` (RoBERTa max 512 tokens) and `padding=True` for batching
-- `process_dataframe` returns a copy — input DataFrame is not mutated
-- Dependencies managed by `uv` with lockfile (`uv.lock`) for reproducible installs
+- `torch.inference_mode()` for all inference
+- `hf_logging.set_verbosity_error()` suppresses expected checkpoint warnings
+- Confidence via `torch.softmax(logits, dim=-1).max(dim=-1)`; labels from `model.config.id2label`
+- Empty/whitespace-only texts skipped; get sentiment `""` and confidence `0.0`
+- Tokenizer uses `truncation=True` (512 token limit) and `padding=True`
+- `process_dataframe` returns a copy; input DataFrame is not mutated
+- Dependencies managed by `uv` with lockfile (`uv.lock`)
 
 ## Tests
 
-- `tests/test_streamlit_app.py` — unit tests covering `get_device`, `load_model`, `process_dataframe`, and `BATCH_SIZE` with mocked model/tokenizer/Streamlit dependencies
-- `tests/data/csv/customer_reviews.csv` — 100 reviews (PRODUCT, DATE, SUMMARY, SENTIMENT_SCORE, Order ID)
-- `tests/data/csv/customer_reviews_sample.csv` — 11-row subset for quick testing
+- `tests/test_streamlit_app.py` — unit tests for `get_device`, `load_model`, `process_dataframe`, and `BATCH_SIZE` with mocked dependencies
+- `tests/data/csv/product_reviews.csv` — 40 e-commerce product reviews
+- `tests/data/csv/movie_reviews.csv` — 40 film and TV opinions
+- `tests/data/csv/social_media.csv` — 40 tweets and social media posts
+- `tests/data/csv/restaurant_reviews.csv` — 40 dining and food service reviews
+- `tests/data/csv/app_reviews.csv` — 40 mobile/web app store reviews
+- `tests/data/csv/mixed_sample.csv` — 20-row sample (4 from each domain) for quick testing
