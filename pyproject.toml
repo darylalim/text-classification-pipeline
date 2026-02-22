@@ -1,2 +1,18 @@
+[project]
+name = "text-classification-pipeline"
+version = "0.1.0"
+description = "Streamlit app for classifying text sentiment using SiEBERT"
+requires-python = ">=3.12"
+dependencies = [
+    "python-dotenv",
+    "pandas",
+    "streamlit",
+    "torch",
+    "transformers",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff", "ty"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
