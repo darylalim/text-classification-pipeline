@@ -1,19 +1,18 @@
 # Text Classification Pipeline
 
-Classify sentiments in customer reviews with IBM Granite 4.0 language models.
+Classify sentiment in English text (reviews, tweets, social media posts, etc.) using [SiEBERT](https://huggingface.co/siebert/sentiment-roberta-large-english), a RoBERTa-based model trained on ~1.4M diverse English texts.
 
 ## Features
 
+- Binary sentiment classification (positive/negative) with confidence scores
 - Batched inference (`BATCH_SIZE` default 8) for GPU/MPS parallelism
-- Few-shot prompt with positive and negative examples
-- Upload a CSV, select the text column, download results with a "Sentiment" column
+- Handles empty and whitespace-only text entries
+- Upload a CSV, select the text column, download results with "Sentiment" and "Confidence" columns
 
 ## Setup
 
 ```bash
-python3.12 -m venv streamlit_env
-source streamlit_env/bin/activate
-pip install -r requirements.txt
+uv sync
 ```
 
 Set a [Hugging Face token](https://huggingface.co/settings/tokens) for authenticated model downloads:
@@ -25,11 +24,11 @@ export HF_TOKEN=hf_...
 ## Usage
 
 ```bash
-streamlit run streamlit_app.py
+uv run streamlit run streamlit_app.py
 ```
 
 ## Testing
 
 ```bash
-pytest
+uv run pytest
 ```
