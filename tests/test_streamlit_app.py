@@ -48,6 +48,35 @@ class TestGetDevice:
         assert get_device() == "cpu"
 
 
+# --- detect_text_column ---
+
+
+class TestDetectTextColumn:
+    def test_returns_first_object_column(self):
+        from streamlit_app import detect_text_column
+
+        df = pd.DataFrame({"id": [1, 2], "review": ["good", "bad"], "score": [5, 1]})
+        assert detect_text_column(df) == "review"
+
+    def test_skips_non_object_columns(self):
+        from streamlit_app import detect_text_column
+
+        df = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+        assert detect_text_column(df) is None
+
+    def test_returns_first_when_multiple_object_columns(self):
+        from streamlit_app import detect_text_column
+
+        df = pd.DataFrame({"name": ["Alice", "Bob"], "text": ["hi", "bye"]})
+        assert detect_text_column(df) == "name"
+
+    def test_returns_none_for_empty_dataframe(self):
+        from streamlit_app import detect_text_column
+
+        df = pd.DataFrame()
+        assert detect_text_column(df) is None
+
+
 # --- load_model ---
 
 

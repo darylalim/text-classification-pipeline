@@ -28,6 +28,14 @@ def get_device():
     )
 
 
+def detect_text_column(df):
+    """Return the name of the first string-dtype column, or None."""
+    for col in df.columns:
+        if df[col].dtype == "object":
+            return col
+    return None
+
+
 @st.cache_resource
 def load_model(device):
     """Load model and tokenizer at application startup."""
