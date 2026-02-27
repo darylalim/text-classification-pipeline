@@ -15,6 +15,16 @@ def test_batch_size_is_positive_int():
     assert BATCH_SIZE > 0
 
 
+# --- SAMPLE_DATA_PATH ---
+
+
+def test_sample_data_path_exists():
+    from streamlit_app import SAMPLE_DATA_PATH
+
+    assert SAMPLE_DATA_PATH.exists()
+    assert SAMPLE_DATA_PATH.suffix == ".csv"
+
+
 # --- get_device ---
 
 

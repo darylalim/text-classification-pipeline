@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -13,6 +14,7 @@ from transformers import (
 load_dotenv()
 
 BATCH_SIZE = 8
+SAMPLE_DATA_PATH = Path(__file__).parent / "tests" / "data" / "csv" / "mixed_sample.csv"
 
 
 def get_device():
