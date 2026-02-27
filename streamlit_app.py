@@ -154,14 +154,14 @@ if df is not None:
     if df.empty:
         st.warning("This CSV has no rows. Please upload a file with data.")
     else:
-        if detect_text_column(df) is None:
+        default_col = detect_text_column(df)
+        if default_col is None:
             st.warning("No text columns detected. Please check your CSV.")
         else:
             st.subheader("Select the column containing text to classify")
 
-            default_col = detect_text_column(df)
             columns = df.columns.tolist()
-            default_index = columns.index(default_col) if default_col else 0
+            default_index = columns.index(default_col)
 
             text_column = st.selectbox(
                 "Text column",
