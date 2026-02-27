@@ -34,12 +34,14 @@ Use `ruff` for all linting and formatting. Run `uv run ruff check --fix .` to au
 
 ## Architecture
 
-Single-file application (`streamlit_app.py`, ~120 lines):
+Single-file application (`streamlit_app.py`, ~220 lines):
 
 1. **`get_device`** — selects MPS, CUDA, or CPU
-2. **`load_model`** — loads model/tokenizer once via `@st.cache_resource` in float16; authenticates with `HF_TOKEN`
-3. **`process_dataframe`** — pre-filters blanks, batches valid texts (`BATCH_SIZE=8`), classifies via softmax over logits
-4. **UI** — file upload → column selection → classify → preview → CSV download
+2. **`detect_text_column`** — returns first string-dtype column name for auto-selection
+3. **`highlight_sentiment`** — returns CSS background color for Pandas Styler (green/red)
+4. **`load_model`** — loads model/tokenizer once via `@st.cache_resource` in float16; authenticates with `HF_TOKEN`
+5. **`process_dataframe`** — pre-filters blanks, batches valid texts (`BATCH_SIZE=8`), classifies via softmax over logits
+6. **UI** — guided step-by-step flow: sidebar with instructions → file upload or sample data → column auto-detect and preview → classify → summary metrics → color-coded results table → CSV download
 
 ## Key Patterns
 
@@ -49,11 +51,13 @@ Single-file application (`streamlit_app.py`, ~120 lines):
 - Empty/whitespace-only texts skipped; get sentiment `""` and confidence `0.0`
 - Tokenizer uses `truncation=True` (512 token limit) and `padding=True`
 - `process_dataframe` returns a copy; input DataFrame is not mutated
+- `SAMPLE_DATA_PATH` points to `tests/data/csv/mixed_sample.csv` for the "Try with sample data" button
+- `.streamlit/config.toml` defines the app theme
 - Dependencies managed by `uv` with lockfile (`uv.lock`)
 
 ## Tests
 
-- `tests/test_streamlit_app.py` — unit tests for `get_device`, `load_model`, `process_dataframe`, and `BATCH_SIZE` with mocked dependencies
+- `tests/test_streamlit_app.py` — unit tests for `get_device`, `detect_text_column`, `highlight_sentiment`, `load_model`, `process_dataframe`, `BATCH_SIZE`, and `SAMPLE_DATA_PATH` with mocked dependencies
 - `tests/data/csv/product_reviews.csv` — 40 e-commerce product reviews
 - `tests/data/csv/movie_reviews.csv` — 40 film and TV opinions
 - `tests/data/csv/social_media.csv` — 40 tweets and social media posts
