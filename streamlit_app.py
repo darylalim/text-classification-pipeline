@@ -142,15 +142,14 @@ elif uploaded_file is not None:
     try:
         df = pd.read_csv(uploaded_file)
         source_name = uploaded_file.name.rsplit(".", 1)[0]
-    except Exception:
+    except pd.errors.ParserError:
         st.error("Could not read this file. Please check it's a valid CSV.")
 
 if df is not None:
     if df.empty:
         st.warning("This CSV has no rows. Please upload a file with data.")
     else:
-        string_columns = [c for c in df.columns if df[c].dtype == "object"]
-        if not string_columns:
+        if detect_text_column(df) is None:
             st.warning("No text columns detected. Please check your CSV.")
         else:
             st.subheader("Select the column containing text to classify")
