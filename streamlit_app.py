@@ -36,6 +36,15 @@ def detect_text_column(df):
     return None
 
 
+def highlight_sentiment(val):
+    """Return CSS background color for a sentiment value."""
+    if val == "positive":
+        return "background-color: #d4edda"
+    if val == "negative":
+        return "background-color: #f8d7da"
+    return ""
+
+
 @st.cache_resource
 def load_model(device):
     """Load model and tokenizer at application startup."""
