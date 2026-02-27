@@ -205,12 +205,10 @@ if df is not None:
 
                     m1, m2, m3, m4 = st.columns(4)
                     m1.metric("Total rows", total)
-                    m2.metric(
-                        "Positive", f"{pos_count} ({pos_count / total * 100:.0f}%)"
-                    )
-                    m3.metric(
-                        "Negative", f"{neg_count} ({neg_count / total * 100:.0f}%)"
-                    )
+                    pct_pos = pos_count / total * 100 if total > 0 else 0
+                    pct_neg = neg_count / total * 100 if total > 0 else 0
+                    m2.metric("Positive", f"{pos_count} ({pct_pos:.0f}%)")
+                    m3.metric("Negative", f"{neg_count} ({pct_neg:.0f}%)")
                     m4.metric("Avg confidence", f"{avg_conf:.1%}")
 
                     styled = result_df.style.map(
