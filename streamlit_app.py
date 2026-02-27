@@ -28,7 +28,7 @@ def get_device():
     )
 
 
-def detect_text_column(df):
+def detect_text_column(df: pd.DataFrame) -> str | None:
     """Return the name of the first string-dtype column, or None."""
     for col in df.columns:
         if df[col].dtype == "object":
@@ -36,7 +36,7 @@ def detect_text_column(df):
     return None
 
 
-def highlight_sentiment(val):
+def highlight_sentiment(val: str) -> str:
     """Return CSS background color for a sentiment value."""
     if val == "positive":
         return "background-color: #d4edda"
