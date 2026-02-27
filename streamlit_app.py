@@ -132,18 +132,18 @@ with col_sample:
 
 st.caption("Supports CSV files. Your data is processed locally and never stored.")
 
-df = None
-source_name = ""
-
 if use_sample:
-    df = pd.read_csv(SAMPLE_DATA_PATH)
-    source_name = "mixed_sample"
+    st.session_state["df"] = pd.read_csv(SAMPLE_DATA_PATH)
+    st.session_state["source_name"] = "mixed_sample"
 elif uploaded_file is not None:
     try:
-        df = pd.read_csv(uploaded_file)
-        source_name = uploaded_file.name.rsplit(".", 1)[0]
+        st.session_state["df"] = pd.read_csv(uploaded_file)
+        st.session_state["source_name"] = uploaded_file.name.rsplit(".", 1)[0]
     except pd.errors.ParserError:
         st.error("Could not read this file. Please check it's a valid CSV.")
+
+df = st.session_state.get("df")
+source_name = st.session_state.get("source_name", "")
 
 if df is not None:
     if df.empty:
