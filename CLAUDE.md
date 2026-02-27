@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Streamlit web app that classifies text sentiment as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`). Users upload a CSV, select the text column, and download results with "Sentiment" and "Confidence" columns.
+Streamlit web app that classifies text sentiment as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`). Users upload a CSV (or try built-in sample data), select the text column, classify, and download results with "Sentiment" and "Confidence" columns. Guided step-by-step UI with sidebar instructions, auto-detected text columns, summary metrics, and color-coded results.
 
 ## Commands
 
@@ -51,6 +51,7 @@ Single-file application (`streamlit_app.py`, ~220 lines):
 - Empty/whitespace-only texts skipped; get sentiment `""` and confidence `0.0`
 - Tokenizer uses `truncation=True` (512 token limit) and `padding=True`
 - `process_dataframe` returns a copy; input DataFrame is not mutated
+- `st.session_state` persists loaded DataFrame across Streamlit reruns (buttons reset on rerun)
 - `SAMPLE_DATA_PATH` points to `tests/data/csv/mixed_sample.csv` for the "Try with sample data" button
 - `.streamlit/config.toml` defines the app theme
 - Dependencies managed by `uv` with lockfile (`uv.lock`)
