@@ -172,7 +172,16 @@ if df is not None:
             st.write("Preview of selected column")
             st.dataframe(df[[text_column]].head(), width="stretch")
 
-            if st.button("Classify", type="primary"):
+            col_classify, col_reset = st.columns([1, 1])
+            with col_classify:
+                classify_clicked = st.button("Classify", type="primary")
+            with col_reset:
+                if st.button("Start over"):
+                    for key in ["df", "source_name"]:
+                        st.session_state.pop(key, None)
+                    st.rerun()
+
+            if classify_clicked:
                 with st.spinner("Classifying..."):
                     result_df = process_dataframe(
                         df, text_column, model, tokenizer, device
