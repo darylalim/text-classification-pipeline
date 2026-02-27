@@ -95,43 +95,129 @@ def process_dataframe(df, text_column, model, tokenizer, device):
     return result
 
 
-st.title("Text Classification Pipeline")
-st.write("Classify sentiment in text with SiEBERT.")
-
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+st.set_page_config(
+    page_title="Text Classification Pipeline",
+    page_icon=":mag:",
+    layout="wide",
+)
 
 device = get_device()
 
 with st.spinner(f"Loading model on {device.upper()}..."):
     model, tokenizer = load_model(device)
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-
-    st.write("Preview")
-    st.dataframe(df.head())
-
-    columns = df.columns.tolist()
-    text_column = st.selectbox(
-        "Select text column",
-        options=columns,
-        index=0,
+with st.sidebar:
+    st.header("How it works")
+    st.markdown(
+        "1. **Upload** a CSV file (or try sample data)\n"
+        "2. **Select** the column containing text\n"
+        "3. **Classify** and download results"
     )
+    st.divider()
+    st.caption("Powered by SiEBERT (RoBERTa-large)")
+    st.caption(f"Running on {device.upper()}")
 
-    if st.button("Classify", type="primary"):
-        st.write("Classifying...")
-        result_df = process_dataframe(df, text_column, model, tokenizer, device)
+st.title("Text Classification Pipeline")
+st.write("Classify the sentiment of text in your CSV as positive or negative.")
 
-        st.success("Done.")
+col_upload, col_sample = st.columns(2)
 
-        st.write("Preview")
-        st.dataframe(result_df.head())
+with col_upload:
+    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
-        csv_data = result_df.to_csv(index=False)
+with col_sample:
+    st.write("")
+    st.write("")
+    use_sample = st.button("Try with sample data")
 
-        st.download_button(
-            label="Download CSV",
-            data=csv_data,
-            file_name=f"{uploaded_file.name.rsplit('.', 1)[0]}_sentiment.csv",
-            mime="text/csv",
-        )
+st.caption("Supports CSV files. Your data is processed locally and never stored.")
+
+df = None
+source_name = ""
+
+if use_sample:
+    df = pd.read_csv(SAMPLE_DATA_PATH)
+    source_name = "mixed_sample"
+elif uploaded_file is not None:
+    try:
+        df = pd.read_csv(uploaded_file)
+        source_name = uploaded_file.name.rsplit(".", 1)[0]
+    except Exception:
+        st.error("Could not read this file. Please check it's a valid CSV.")
+
+if df is not None:
+    if df.empty:
+        st.warning("This CSV has no rows. Please upload a file with data.")
+    else:
+        string_columns = [c for c in df.columns if df[c].dtype == "object"]
+        if not string_columns:
+            st.warning("No text columns detected. Please check your CSV.")
+        else:
+            st.subheader("Select the column containing text to classify")
+
+            default_col = detect_text_column(df)
+            columns = df.columns.tolist()
+            default_index = columns.index(default_col) if default_col else 0
+
+            text_column = st.selectbox(
+                "Text column",
+                options=columns,
+                index=default_index,
+            )
+
+            st.write("Preview of selected column")
+            st.dataframe(df[[text_column]].head(), use_container_width=True)
+
+            if st.button("Classify", type="primary"):
+                with st.spinner("Classifying..."):
+                    result_df = process_dataframe(
+                        df, text_column, model, tokenizer, device
+                    )
+
+                all_blank = result_df["Sentiment"].eq("").all()
+
+                if all_blank:
+                    st.info(
+                        "All values in this column are empty. "
+                        "No classification was performed."
+                    )
+                    csv_data = result_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download results as CSV",
+                        data=csv_data,
+                        file_name=f"{source_name}_sentiment.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    st.success("Classification complete!")
+
+                    total = len(result_df)
+                    classified = result_df[result_df["Sentiment"] != ""]
+                    pos_count = int((classified["Sentiment"] == "positive").sum())
+                    neg_count = int((classified["Sentiment"] == "negative").sum())
+                    avg_conf = (
+                        classified["Confidence"].mean() if len(classified) > 0 else 0.0
+                    )
+
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Total rows", total)
+                    m2.metric(
+                        "Positive", f"{pos_count} ({pos_count / total * 100:.0f}%)"
+                    )
+                    m3.metric(
+                        "Negative", f"{neg_count} ({neg_count / total * 100:.0f}%)"
+                    )
+                    m4.metric("Avg confidence", f"{avg_conf:.1%}")
+
+                    styled = result_df.style.map(
+                        highlight_sentiment, subset=["Sentiment"]
+                    )
+                    st.dataframe(styled, use_container_width=True)
+
+                    csv_data = result_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download results as CSV",
+                        data=csv_data,
+                        file_name=f"{source_name}_sentiment.csv",
+                        mime="text/csv",
+                    )
