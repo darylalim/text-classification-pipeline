@@ -139,7 +139,12 @@ elif uploaded_file is not None:
     try:
         st.session_state["df"] = pd.read_csv(uploaded_file)
         st.session_state["source_name"] = uploaded_file.name.rsplit(".", 1)[0]
-    except pd.errors.ParserError:
+    except (
+        pd.errors.ParserError,
+        pd.errors.EmptyDataError,
+        UnicodeDecodeError,
+        ValueError,
+    ):
         st.error("Could not read this file. Please check it's a valid CSV.")
 
 df = st.session_state.get("df")
