@@ -4,10 +4,14 @@ Classify sentiment in English text using [SiEBERT](https://huggingface.co/sieber
 
 ## Features
 
-- Upload a CSV, select the text column, classify, and download results
+- Upload a CSV or try built-in sample data
+- Auto-detects the text column; select any column to classify
 - Binary sentiment (positive/negative) with confidence scores
-- Batched GPU/MPS inference
-- Handles empty and whitespace-only text
+- Summary metrics: total rows, positive/negative counts, average confidence
+- Color-coded results table with CSV download
+- Sidebar with step-by-step instructions
+- Batched GPU/MPS/CPU inference
+- Handles empty, whitespace-only, and malformed input
 
 ## Setup
 
