@@ -170,7 +170,7 @@ if df is not None:
             )
 
             st.write("Preview of selected column")
-            st.dataframe(df[[text_column]].head(), use_container_width=True)
+            st.dataframe(df[[text_column]].head(), width="stretch")
 
             if st.button("Classify", type="primary"):
                 with st.spinner("Classifying..."):
@@ -214,7 +214,7 @@ if df is not None:
                     styled = result_df.style.map(
                         highlight_sentiment, subset=["Sentiment"]
                     )
-                    st.dataframe(styled, use_container_width=True)
+                    st.dataframe(styled, width="stretch")
 
                     csv_data = result_df.to_csv(index=False)
                     st.download_button(
