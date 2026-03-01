@@ -36,12 +36,16 @@ def detect_text_column(df: pd.DataFrame) -> str | None:
     return None
 
 
-def highlight_sentiment(val: str) -> str:
-    """Return CSS background color for a sentiment value."""
+def highlight_sentiment(val: str, *, dark: bool = False) -> str:
+    """Return CSS for a sentiment value, adapted to light or dark theme."""
     if val == "positive":
-        return "background-color: #d4edda"
+        if dark:
+            return "background-color: #2d4a2d; color: #e0e0e0"
+        return "background-color: #d6ecd2"
     if val == "negative":
-        return "background-color: #f8d7da"
+        if dark:
+            return "background-color: #4a2d2d; color: #e0e0e0"
+        return "background-color: #f5d0d0"
     return ""
 
 
