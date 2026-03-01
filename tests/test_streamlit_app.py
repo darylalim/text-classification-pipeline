@@ -77,49 +77,6 @@ class TestDetectTextColumn:
         assert detect_text_column(df) is None
 
 
-# --- highlight_sentiment ---
-
-
-class TestHighlightSentiment:
-    def test_positive_light_returns_muted_green(self):
-        from streamlit_app import highlight_sentiment
-
-        result = highlight_sentiment("positive", dark=False)
-        assert "background-color: #d6ecd2" in result
-
-    def test_negative_light_returns_muted_red(self):
-        from streamlit_app import highlight_sentiment
-
-        result = highlight_sentiment("negative", dark=False)
-        assert "background-color: #f5d0d0" in result
-
-    def test_positive_dark_returns_deep_green(self):
-        from streamlit_app import highlight_sentiment
-
-        result = highlight_sentiment("positive", dark=True)
-        assert "background-color: #2d4a2d" in result
-        assert "color: #e0e0e0" in result
-
-    def test_negative_dark_returns_deep_red(self):
-        from streamlit_app import highlight_sentiment
-
-        result = highlight_sentiment("negative", dark=True)
-        assert "background-color: #4a2d2d" in result
-        assert "color: #e0e0e0" in result
-
-    def test_empty_returns_empty_string(self):
-        from streamlit_app import highlight_sentiment
-
-        assert highlight_sentiment("", dark=False) == ""
-        assert highlight_sentiment("", dark=True) == ""
-
-    def test_unknown_returns_empty_string(self):
-        from streamlit_app import highlight_sentiment
-
-        assert highlight_sentiment("neutral", dark=False) == ""
-        assert highlight_sentiment("neutral", dark=True) == ""
-
-
 # --- load_model ---
 
 

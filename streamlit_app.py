@@ -1,4 +1,3 @@
-from functools import partial
 import os
 from pathlib import Path
 
@@ -35,19 +34,6 @@ def detect_text_column(df: pd.DataFrame) -> str | None:
         if df[col].dtype == "object":
             return col
     return None
-
-
-def highlight_sentiment(val: str, *, dark: bool = False) -> str:
-    """Return CSS for a sentiment value, adapted to light or dark theme."""
-    if val == "positive":
-        if dark:
-            return "background-color: #2d4a2d; color: #e0e0e0"
-        return "background-color: #d6ecd2"
-    if val == "negative":
-        if dark:
-            return "background-color: #4a2d2d; color: #e0e0e0"
-        return "background-color: #f5d0d0"
-    return ""
 
 
 @st.cache_resource
@@ -107,7 +93,6 @@ st.set_page_config(
 )
 
 device = get_device()
-is_dark = st.get_option("theme.base") == "dark"
 
 with st.spinner(f"Loading model on {device.upper()}..."):
     model, tokenizer = load_model(device)
@@ -227,11 +212,7 @@ if df is not None:
                     m3.metric("Negative", f"{neg_count} ({pct_neg:.0f}%)")
                     m4.metric("Avg confidence", f"{avg_conf:.1%}")
 
-                    styled = result_df.style.map(
-                        partial(highlight_sentiment, dark=is_dark),
-                        subset=["Sentiment"],
-                    )
-                    st.dataframe(styled, width="stretch")
+                    st.dataframe(result_df, width="stretch")
 
                     csv_data = result_df.to_csv(index=False)
                     st.download_button(
