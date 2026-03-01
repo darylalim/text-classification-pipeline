@@ -1,3 +1,4 @@
+from functools import partial
 import os
 from pathlib import Path
 
@@ -106,6 +107,7 @@ st.set_page_config(
 )
 
 device = get_device()
+is_dark = st.get_option("theme.base") == "dark"
 
 with st.spinner(f"Loading model on {device.upper()}..."):
     model, tokenizer = load_model(device)
@@ -225,7 +227,8 @@ if df is not None:
                     m4.metric("Avg confidence", f"{avg_conf:.1%}")
 
                     styled = result_df.style.map(
-                        highlight_sentiment, subset=["Sentiment"]
+                        partial(highlight_sentiment, dark=is_dark),
+                        subset=["Sentiment"],
                     )
                     st.dataframe(styled, width="stretch")
 
