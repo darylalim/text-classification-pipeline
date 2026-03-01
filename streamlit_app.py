@@ -99,6 +99,7 @@ with st.spinner(f"Loading model on {device.upper()}..."):
 
 st.title("Text Classification Pipeline")
 st.write("Classify the sentiment of text in your CSV as positive or negative.")
+st.caption(f"Powered by SiEBERT (RoBERTa-large) · Running on {device.upper()}")
 
 col_upload, col_sample = st.columns(2)
 
