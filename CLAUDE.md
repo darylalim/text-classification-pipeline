@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Streamlit web app that classifies text sentiment as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`). Users upload a CSV (or try built-in sample data), select the text column, classify, and download results with "Sentiment" and "Confidence" columns. Guided step-by-step UI with sidebar instructions, auto-detected text columns, summary metrics, and color-coded results. Supports light/dark theme switching with muted colors and comfort typography for extended use.
+Streamlit web app that classifies text sentiment as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`). Users upload a CSV (or try built-in sample data), select the text column, classify, and download results with "Sentiment" and "Confidence" columns. Guided step-by-step UI with auto-detected text columns and summary metrics.
 
 ## Commands
 
@@ -34,14 +34,13 @@ Use `ruff` for all linting and formatting. Run `uv run ruff check --fix .` to au
 
 ## Architecture
 
-Single-file application (`streamlit_app.py`, ~250 lines):
+Single-file application (`streamlit_app.py`, ~200 lines):
 
 1. **`get_device`** — selects MPS, CUDA, or CPU
 2. **`detect_text_column`** — returns first string-dtype column name for auto-selection
-3. **`highlight_sentiment`** — returns theme-aware CSS for Pandas Styler (muted green/red for light, deep green/red for dark); accepts `dark` keyword-only parameter
-4. **`load_model`** — loads model/tokenizer once via `@st.cache_resource` in float16; authenticates with `HF_TOKEN`
-5. **`process_dataframe`** — pre-filters blanks, batches valid texts (`BATCH_SIZE=8`), classifies via softmax over logits
-6. **UI** — guided step-by-step flow: sidebar with instructions and theme hint → comfort CSS injection → file upload or sample data → column auto-detect and preview → classify → summary metrics → color-coded results table → CSV download
+3. **`load_model`** — loads model/tokenizer once via `@st.cache_resource` in float16; authenticates with `HF_TOKEN`
+4. **`process_dataframe`** — pre-filters blanks, batches valid texts (`BATCH_SIZE=8`), classifies via softmax over logits
+5. **UI** — guided step-by-step flow: file upload or sample data → column auto-detect and preview → classify → summary metrics → results table → CSV download
 
 ## Key Patterns
 
@@ -53,14 +52,12 @@ Single-file application (`streamlit_app.py`, ~250 lines):
 - `process_dataframe` returns a copy; input DataFrame is not mutated
 - `st.session_state` persists loaded DataFrame across Streamlit reruns (buttons reset on rerun)
 - `SAMPLE_DATA_PATH` points to `tests/data/csv/mixed_sample.csv` for the "Try with sample data" button
-- `.streamlit/config.toml` sets only `primaryColor` and `font`; Streamlit manages light/dark backgrounds and text colors via its built-in theme toggle (Settings menu)
-- Theme detection via `st.get_option("theme.base")` with `functools.partial` to pass `dark` flag to `highlight_sentiment` in `style.map`
-- Custom CSS injection (`st.markdown`) for 16px font size and 1.6 line height for reading comfort
+- Uses Streamlit default theme settings (no custom `.streamlit/config.toml`)
 - Dependencies managed by `uv` with lockfile (`uv.lock`)
 
 ## Tests
 
-- `tests/test_streamlit_app.py` — unit tests for `get_device`, `detect_text_column`, `highlight_sentiment`, `load_model`, `process_dataframe`, `BATCH_SIZE`, and `SAMPLE_DATA_PATH` with mocked dependencies
+- `tests/test_streamlit_app.py` — unit tests for `get_device`, `detect_text_column`, `load_model`, `process_dataframe`, `BATCH_SIZE`, and `SAMPLE_DATA_PATH` with mocked dependencies
 - `tests/data/csv/product_reviews.csv` — 40 e-commerce product reviews
 - `tests/data/csv/movie_reviews.csv` — 40 film and TV opinions
 - `tests/data/csv/social_media.csv` — 40 tweets and social media posts

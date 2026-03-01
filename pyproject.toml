@@ -1,7 +1,7 @@
 [project]
 name = "text-classification-pipeline"
-version = "0.3.0"
-description = "Streamlit app for classifying text sentiment using SiEBERT with light/dark theme support"
+version = "0.4.0"
+description = "Streamlit app for classifying text sentiment using SiEBERT"
 requires-python = ">=3.12"
 dependencies = [
     "python-dotenv",
