@@ -106,18 +106,6 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown(
-    """
-    <style>
-    .stMainBlockContainer, .stSidebar {
-        font-size: 16px;
-        line-height: 1.6;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 device = get_device()
 is_dark = st.get_option("theme.base") == "dark"
 
