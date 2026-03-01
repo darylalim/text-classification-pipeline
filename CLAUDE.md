@@ -34,11 +34,11 @@ Use `ruff` for all linting and formatting. Run `uv run ruff check --fix .` to au
 
 ## Architecture
 
-Single-file application (`streamlit_app.py`, ~220 lines):
+Single-file application (`streamlit_app.py`, ~250 lines):
 
 1. **`get_device`** — selects MPS, CUDA, or CPU
 2. **`detect_text_column`** — returns first string-dtype column name for auto-selection
-3. **`highlight_sentiment`** — returns CSS background color for Pandas Styler (green/red)
+3. **`highlight_sentiment`** — returns theme-aware CSS for Pandas Styler (muted green/red for light, deep green/red for dark); accepts `dark` keyword-only parameter
 4. **`load_model`** — loads model/tokenizer once via `@st.cache_resource` in float16; authenticates with `HF_TOKEN`
 5. **`process_dataframe`** — pre-filters blanks, batches valid texts (`BATCH_SIZE=8`), classifies via softmax over logits
 6. **UI** — guided step-by-step flow: sidebar with instructions → file upload or sample data → column auto-detect and preview → classify → summary metrics → color-coded results table → CSV download
@@ -53,7 +53,9 @@ Single-file application (`streamlit_app.py`, ~220 lines):
 - `process_dataframe` returns a copy; input DataFrame is not mutated
 - `st.session_state` persists loaded DataFrame across Streamlit reruns (buttons reset on rerun)
 - `SAMPLE_DATA_PATH` points to `tests/data/csv/mixed_sample.csv` for the "Try with sample data" button
-- `.streamlit/config.toml` defines the app theme
+- `.streamlit/config.toml` sets only `primaryColor` and `font`; Streamlit manages light/dark backgrounds and text colors via its built-in theme toggle (Settings menu)
+- Theme detection via `st.get_option("theme.base")` with `functools.partial` to pass `dark` flag to `highlight_sentiment` in `style.map`
+- Custom CSS injection (`st.markdown`) for 16px font size and 1.6 line height for reading comfort
 - Dependencies managed by `uv` with lockfile (`uv.lock`)
 
 ## Tests
