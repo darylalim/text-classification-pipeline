@@ -9,7 +9,10 @@ Classify sentiment in English text using [SiEBERT](https://huggingface.co/sieber
 - Binary sentiment (positive/negative) with confidence scores
 - Summary metrics: total rows, positive/negative counts, average confidence
 - Color-coded results table with CSV download
-- Sidebar with step-by-step instructions
+- Light/dark theme switching via Streamlit settings
+- Muted sentiment colors adapted to each theme
+- Comfort typography (16px font, 1.6 line height) for extended use
+- Sidebar with step-by-step instructions and theme hint
 - Batched GPU/MPS/CPU inference
 - Handles empty, whitespace-only, and malformed input
 
