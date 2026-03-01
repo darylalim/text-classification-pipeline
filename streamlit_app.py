@@ -106,6 +106,18 @@ st.set_page_config(
     layout="wide",
 )
 
+st.markdown(
+    """
+    <style>
+    .stMainBlockContainer, .stSidebar {
+        font-size: 16px;
+        line-height: 1.6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 device = get_device()
 is_dark = st.get_option("theme.base") == "dark"
 
@@ -122,6 +134,7 @@ with st.sidebar:
     st.divider()
     st.caption("Powered by SiEBERT (RoBERTa-large)")
     st.caption(f"Running on {device.upper()}")
+    st.caption("Tip: Change theme in Settings (\u22ee menu)")
 
 st.title("Text Classification Pipeline")
 st.write("Classify the sentiment of text in your CSV as positive or negative.")
