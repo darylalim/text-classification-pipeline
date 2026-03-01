@@ -97,18 +97,6 @@ device = get_device()
 with st.spinner(f"Loading model on {device.upper()}..."):
     model, tokenizer = load_model(device)
 
-with st.sidebar:
-    st.header("How it works")
-    st.markdown(
-        "1. **Upload** a CSV file (or try sample data)\n"
-        "2. **Select** the column containing text\n"
-        "3. **Classify** and download results"
-    )
-    st.divider()
-    st.caption("Powered by SiEBERT (RoBERTa-large)")
-    st.caption(f"Running on {device.upper()}")
-    st.caption("Tip: Change theme in Settings (\u22ee menu)")
-
 st.title("Text Classification Pipeline")
 st.write("Classify the sentiment of text in your CSV as positive or negative.")
 
