@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Streamlit web app that classifies text sentiment as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`). Users upload a CSV (or try built-in sample data), select the text column, classify, and download results with "Sentiment" and "Confidence" columns. Guided step-by-step UI with sidebar instructions, auto-detected text columns, summary metrics, and color-coded results.
+Streamlit web app that classifies text sentiment as positive/negative using SiEBERT (`siebert/sentiment-roberta-large-english`). Users upload a CSV (or try built-in sample data), select the text column, classify, and download results with "Sentiment" and "Confidence" columns. Guided step-by-step UI with sidebar instructions, auto-detected text columns, summary metrics, and color-coded results. Supports light/dark theme switching with muted colors and comfort typography for extended use.
 
 ## Commands
 
@@ -41,7 +41,7 @@ Single-file application (`streamlit_app.py`, ~250 lines):
 3. **`highlight_sentiment`** — returns theme-aware CSS for Pandas Styler (muted green/red for light, deep green/red for dark); accepts `dark` keyword-only parameter
 4. **`load_model`** — loads model/tokenizer once via `@st.cache_resource` in float16; authenticates with `HF_TOKEN`
 5. **`process_dataframe`** — pre-filters blanks, batches valid texts (`BATCH_SIZE=8`), classifies via softmax over logits
-6. **UI** — guided step-by-step flow: sidebar with instructions → file upload or sample data → column auto-detect and preview → classify → summary metrics → color-coded results table → CSV download
+6. **UI** — guided step-by-step flow: sidebar with instructions and theme hint → comfort CSS injection → file upload or sample data → column auto-detect and preview → classify → summary metrics → color-coded results table → CSV download
 
 ## Key Patterns
 
